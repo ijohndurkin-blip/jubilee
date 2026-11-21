@@ -5,11 +5,11 @@ A 3D pub reaction game. Customers walk up to the bar of The Jubilee (est. 1887).
 - **Good** → **SERVE** them a pint
 - **Evil** → **SHOOT**
 
-Wrong call or too slow, and the customer takes out your barmaid. Lose both Scarlett and Summer and it's closing time.
+Type your name, pick **Barmaid** or **Barman**, and open the bar. Your name stays at the top of the screen while you play. A wrong call or being too slow gets you shot. You have 2 lives, and 10 in a row wins one back.
 
 ## Features
 
-- **Player names + global leaderboard.** Tap **＋ ADD NAME** on the menu. Every finished shift is saved for good and ranked in the **Hall of Fame** (best score per player). Scores made offline are queued and sent the next time you play.
+- **Player names + global leaderboard.** Every player enters a name before playing. The **Hall of Fame** (best score per player) shows on the start screen and again at closing time. Every finished shift is saved for good. Scores made offline are queued and sent the next time you play.
 - **Full screen.** Use the ⛶ button (or press **F**). On iPhone, tap Share → *Add to Home Screen* and open it from there to play full screen.
 - **Sneakier every round.** From round 2 on, villains hide their tells: less coats and shifty looks, more smiles, friendly small talk, quicker and dimmer red eye glints. Meanwhile the regulars look shiftier, say alarming things, and their glasses catch the light. Only the red flash in the eyes never lies.
 - **Shotgun streaks.** Get **5 right in a row** and you're handed a shotgun. It stays loaded until the next villain walks in: hit **BLAST** and they get blown in slow motion clean out of the front door, for double points + 250. A wrong call drops it.

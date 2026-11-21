@@ -121,6 +121,7 @@
   .stats span{font-size:11px;letter-spacing:.12em;color:#c9a77a;font-weight:800}
   #goMsg{font-weight:800;color:#e9c99a;text-align:center;max-width:340px;margin-top:8px}
   #nameOv,#lbOv{z-index:12;background:radial-gradient(ellipse at 50% 30%,#2a160bf5,#0b0503fb 75%);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+  .ov{justify-content:flex-start}
   .ov > .wrap{margin:auto;display:flex;flex-direction:column;align-items:center;width:100%;max-width:420px}
   .hbtn{width:34px;height:34px;border-radius:50%;border:0;background:#0007;color:#fff;font-size:16px;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer}
   .hbtn svg{width:18px;height:18px}
@@ -141,19 +142,25 @@
   #nameIn{width:100%;max-width:320px;font-family:inherit;font-weight:900;font-size:22px;text-align:center;padding:14px 16px;border-radius:16px;border:2px solid #f5c35a66;background:#00000066;color:var(--cream);outline:none;user-select:text;-webkit-user-select:text;margin:6px 0 6px}
   #nameIn:focus{border-color:var(--gold);box-shadow:0 0 0 4px #f5c35a33}
   #nameErr{min-height:20px;color:#ff8a94;font-weight:800;font-size:13px;margin-bottom:10px;text-align:center}
-  #lbList{list-style:none;margin:6px 0 10px;padding:0;width:100%}
-  #lbList li{display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;padding:9px 12px;margin:5px 0;border-radius:14px;background:#ffffff0c;border:1px solid #ffffff10}
-  #lbList li.me{background:#f5c35a22;border-color:var(--gold)}
-  #lbList .rk{font-family:'Rye',Georgia,serif;font-size:18px;color:#c9a77a;text-align:center}
-  #lbList li:nth-child(1) .rk{color:#ffd34d;font-size:22px}
-  #lbList li:nth-child(2) .rk{color:#d9d9e6}
-  #lbList li:nth-child(3) .rk{color:#e3955a}
-  #lbList .nm{font-weight:900;font-size:16px;color:var(--cream);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  #lbList .meta{display:block;font-size:11px;font-weight:800;color:#c9a77a;letter-spacing:.06em;margin-top:2px}
-  #lbList .sc{font-weight:900;font-size:19px;color:var(--gold2)}
-  #lbStatus{font-weight:800;color:#c9a77a;font-size:13px;text-align:center;min-height:18px;margin-bottom:12px}
+  .lb{list-style:none;margin:6px 0 10px;padding:0;width:100%}
+  .lb li{display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;padding:9px 12px;margin:5px 0;border-radius:14px;background:#ffffff0c;border:1px solid #ffffff10}
+  .lb li.me{background:#f5c35a22;border-color:var(--gold)}
+  .lb .rk{font-family:'Rye',Georgia,serif;font-size:18px;color:#c9a77a;text-align:center}
+  .lb li:nth-child(1) .rk{color:#ffd34d;font-size:22px}
+  .lb li:nth-child(2) .rk{color:#d9d9e6}
+  .lb li:nth-child(3) .rk{color:#e3955a}
+  .lb .nm{font-weight:900;font-size:16px;color:var(--cream);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lb .meta{display:block;font-size:11px;font-weight:800;color:#c9a77a;letter-spacing:.06em;margin-top:2px}
+  .lb .sc{font-weight:900;font-size:19px;color:var(--gold2)}
+  .lbs{font-weight:800;color:#c9a77a;font-size:13px;text-align:center;min-height:18px;margin-bottom:12px}
   #goRank{font-weight:900;color:var(--gold2);text-align:center;min-height:20px;margin:-6px 0 14px;font-size:15px}
   #fsTip{font-size:12px;color:#c9a77a;font-weight:800;text-align:center;margin-top:8px;display:none;max-width:320px}
+  .board{width:100%;background:#00000055;border:1px solid #ffffff14;border-radius:18px;padding:10px 12px 4px;margin:14px 0 6px}
+  .board .bh{font-family:'Rye',Georgia,serif;color:var(--gold);font-size:22px;text-align:center}
+  .board .lb li{padding:7px 10px;margin:4px 0}
+  #pnameTxt{display:block;font-family:'Rye',Georgia,serif;font-size:20px;color:var(--gold2);max-width:42vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+  #lives{font-size:18px;letter-spacing:2px;margin-right:2px;text-shadow:0 2px 2px #000}
+  #menuName{margin-top:2px}
   #loading{position:fixed;inset:0;z-index:20;background:#140b06;display:flex;align-items:center;justify-content:center;font-family:'Rye',Georgia,serif;color:var(--gold);font-size:28px;transition:opacity .5s}
 </style>
 </head>
@@ -163,10 +170,9 @@
 
 <div id="hud">
   <div class="hstat"><small>SCORE</small><span id="score">0</span><div id="combo"></div><div id="gunBadge">SHOTGUN LOADED</div></div>
-  <div class="hstat" style="text-align:center"><small>ROUND</small><span id="round">1</span></div>
+  <div class="hstat" style="text-align:center"><small>ROUND <span id="round">1</span></small><span id="pnameTxt"></span></div>
   <div id="maids">
-    <div class="chip" id="chip0" style="--hair:#f5d37a" data-i="SC"><span class="x">✕</span></div>
-    <div class="chip" id="chip1" style="--hair:#141414" data-i="SU"><span class="x">✕</span></div>
+    <div id="lives"></div>
     <button id="mute" class="hbtn" aria-label="Toggle sound">🔊</button>
     <button id="fs" class="hbtn fsBtn" aria-label="Toggle full screen"></button>
   </div>
@@ -193,27 +199,26 @@
 <div class="ov" id="menu"><div class="wrap">
   <h1 class="title"><small>EST. 1887</small>The Jubilee</h1>
   <div class="sub">Good or evil? You've got seconds to decide.</div>
-  <div class="who"><span id="whoTxt">No name yet</span><button class="pill" id="addName">＋ ADD NAME</button></div>
+  <input id="nameIn" class="menuName" maxlength="18" autocomplete="nickname" autocapitalize="words" spellcheck="false" placeholder="Enter your name" aria-label="Your name">
+  <div id="nameErr"></div>
   <div class="pick">
     <button class="card sel" data-m="0">
       <div class="av" id="av0"></div>
-      <div class="nm">Scarlett</div><div class="ds">Blonde · cool head</div>
+      <div class="nm">Barmaid</div>
     </button>
     <button class="card" data-m="1">
       <div class="av" id="av1"></div>
-      <div class="nm">Summer</div><div class="ds">Black hair · quick draw</div>
+      <div class="nm">Barman</div>
     </button>
   </div>
-  <div class="how">
-    Pick who starts the shift. Customers walk up to the bar — <b>read what they say</b> and <b>watch them closely</b>.<br>
-    <span class="g">● Good</span> → <b>SERVE</b> them a pint.&nbsp; <span class="e">● Evil</span> → <b>SHOOT</b>.<br>
-    Wrong call or too slow, and the customer takes out your barmaid. Lose both and it's closing time.<br>
-    <b>Tells:</b> a red glint in the eyes, a hand hidden in the coat, shifty looks… but plenty of regulars look dodgy too — and every round the villains get <b>sneakier</b>.<br>
-    <b>🔥 Hot streak:</b> get <b>5 right in a row</b> and you're handed a <b>shotgun</b>. Blast the next villain clean across the pub.
-  </div>
   <button class="big" id="play">OPEN THE BAR</button>
+  <div class="board"><div class="bh">🏆 Hall of Fame</div><ol class="lb" id="lbMenuList"></ol><div class="lbs" id="lbMenuStatus"></div></div>
+  <div class="how">
+    <span class="g">● Good</span> → <b>SERVE</b> a pint.&nbsp; <span class="e">● Evil</span> → <b>SHOOT</b>. Wrong call or too slow and you get shot — you've got <b>2 lives</b>.<br>
+    <b>Tells:</b> a red glint in the eyes, a hand in the coat, shifty looks… and every round the villains get <b>sneakier</b>.<br>
+    <b>🔥 5 right in a row</b> = a <b>shotgun</b> to blast the next villain out the door.
+  </div>
   <div class="row">
-    <button class="ghost" id="lbMenu">🏆 Leaderboard</button>
     <button class="ghost fsBtnTxt" id="fsMenu">⛶ Full screen</button>
   </div>
   <div id="fsTip">On iPhone, tap Share → <b>Add to Home Screen</b> and open it from there to play full screen.</div>
@@ -230,29 +235,9 @@
     <div><b id="goStreak">0</b><span>BEST STREAK</span></div>
   </div>
   <div id="goRank"></div>
-  <button class="pill" id="goAddName" style="display:none;margin:-4px 0 16px;font-size:15px;padding:12px 18px">＋ ADD NAME TO SAVE THIS SCORE</button>
-  <button class="big" id="again">ANOTHER ROUND</button>
-  <div class="row">
-    <button class="ghost" id="lbOver">🏆 Leaderboard</button>
-    <button class="ghost" id="toMenu">Change barmaid</button>
-  </div>
-</div></div>
-
-<div class="ov hide" id="nameOv"><div class="wrap">
-  <h2 class="title" style="font-size:clamp(34px,10vw,48px)">Sign the Register</h2>
-  <div class="sub">Your name goes up on the leaderboard behind the bar — for good.</div>
-  <input id="nameIn" maxlength="18" autocomplete="nickname" autocapitalize="words" spellcheck="false" placeholder="e.g. Big Dave" aria-label="Your name">
-  <div id="nameErr"></div>
-  <button class="big" id="nameSave">SAVE NAME</button>
-  <button class="ghost" id="nameCancel">Cancel</button>
-</div></div>
-
-<div class="ov hide" id="lbOv"><div class="wrap">
-  <h2 class="title" style="font-size:clamp(34px,10vw,52px)">Hall of Fame</h2>
-  <div class="sub" style="margin-bottom:8px">Best shift per player · saved forever</div>
-  <ol id="lbList"></ol>
-  <div id="lbStatus"></div>
-  <button class="big" id="lbClose">BACK</button>
+  <button class="big" id="again">PLAY AGAIN</button>
+  <div class="board"><div class="bh">🏆 Hall of Fame</div><ol class="lb" id="lbOverList"></ol><div class="lbs" id="lbOverStatus"></div></div>
+  <button class="ghost" id="toMenu">Change player</button>
 </div></div>
 
 <div id="loading">The Jubilee…</div>
@@ -937,8 +922,8 @@ const SPOT_ACTIVE = new THREE.Vector3(-.55, 0, -.8);
 const SPOT_IDLE = new THREE.Vector3(-2.2, 0, -1.05);
 const CUST_SPOT = new THREE.Vector3(.6, 0, 1.0);
 const MAIDS = [
-  { name: 'Scarlett', hair: '#f5d37a', o: { skin: 0xffd9b8, hairColor: 0xf3cf6c, hairStyle: 'ponytail', shirt: 0xc8102e, skirt: 0x1d1d1d, pants: 0x1d1d1d, dress: true, apron: true, shortSleeve: true, lips: true, scrunchie: 0x1d1d1d, height: 1 } },
-  { name: 'Summer', hair: '#141414', o: { skin: 0xf0c49c, hairColor: 0x0c0c0c, hairStyle: 'long', shirt: 0x139c9c, skirt: 0x1d1d1d, pants: 0x1d1d1d, dress: true, apron: true, shortSleeve: true, lips: true, height: .98 } },
+  { name: 'Barmaid', hair: '#f5d37a', o: { skin: 0xffd9b8, hairColor: 0xf3cf6c, hairStyle: 'ponytail', shirt: 0xc8102e, skirt: 0x1d1d1d, pants: 0x1d1d1d, dress: true, apron: true, shortSleeve: true, lips: true, scrunchie: 0x1d1d1d, height: 1 } },
+  { name: 'Barman', hair: '#3a2414', o: { skin: 0xf1c27d, hairColor: 0x3a2414, hairStyle: 'short', shirt: 0x2b4d8c, pants: 0x1d1d1d, apron: true, shortSleeve: true, beard: true, height: 1.05 } },
 ];
 MAIDS[0].o.eyeColor = 0x2a6a9c; MAIDS[1].o.eyeColor = 0x3b2414;
 MAIDS.forEach(m => { m.P = makePerson(m.o); m.alive = true; m.role = 'idle'; m.gun = makeGun(0x2b2b2b); m.gun.visible = false; m.P.handR.add(m.gun);
@@ -1243,7 +1228,8 @@ function updateHUD() {
   UI.round.textContent = G.level;
   UI.combo.textContent = G.streak >= 2 ? `🔥 ${G.streak} streak  ×${comboMult().toFixed(1)}` : (G.streak === 1 ? '🔥 1 streak' : '');
   if (!G.shotgun && G.streak > 0) UI.combo.textContent += `  ·  🎯 ${5 - G.streak % 5} to shotgun`;
-  MAIDS.forEach((m, i) => { const c = $('chip' + i); c.classList.toggle('active', G.active === i && m.alive); c.classList.toggle('down', !m.alive); });
+  $('lives').textContent = '❤️'.repeat(Math.max(0, G.lives)) + '🖤'.repeat(Math.max(0, 2 - G.lives));
+  $('pnameTxt').textContent = player;
   $('gunBadge').classList.toggle('on', !!G.shotgun);
   $('bShoot').classList.toggle('shotgun', !!G.shotgun);
   $('shootLbl').textContent = G.shotgun ? 'BLAST' : 'SHOOT';
@@ -1252,7 +1238,7 @@ function updateHUD() {
 function setControls(on, locked) { UI.controls.classList.toggle('on', on); UI.controls.classList.toggle('locked', !!locked); }
 
 /* ============================== game state ============================== */
-const G = { state: 'menu', run: 0, score: 0, streak: 0, bestStreak: 0, correct: 0, seen: 0, level: 1, active: 0, starter: 0, cust: null, timer: 0, timerMax: 1, best: +(store('jub_best') || 0), shotgun: false, blasts: 0 };
+const G = { state: 'menu', run: 0, score: 0, streak: 0, bestStreak: 0, correct: 0, seen: 0, level: 1, active: 0, starter: 0, cust: null, timer: 0, timerMax: 1, best: +(store('jub_best') || 0), shotgun: false, blasts: 0, lives: 2 };
 let timeScale = 1;
 const comboMult = () => 1 + Math.min(G.streak, 10) * .1;
 const activeMaid = () => MAIDS[G.active];
@@ -1262,6 +1248,7 @@ function placeMaids() {
     const P = m.P; resetPose(P); setOpacity(P, 1); setEmissive(P, 0, 0);
     P.root.visible = true; m.alive = true; m.gun.visible = false; m.shotgun.visible = false;
     const act = i === G.active;
+    if (!act) { P.root.visible = false; m.alive = false; m.role = 'off'; return; }
     m.role = act ? 'active' : 'idle'; m.glass.visible = !act;
     P.root.position.copy(act ? SPOT_ACTIVE : SPOT_IDLE);
     P.root.rotation.y = act ? 0 : .55;
@@ -1273,14 +1260,14 @@ async function startGame() {
   G.run++; const run = G.run;
   tweens = [];
   if (G.cust) { removePerson(G.cust.P); G.cust = null; }
-  Object.assign(G, { state: 'playing', score: 0, streak: 0, bestStreak: 0, correct: 0, seen: 0, level: 1, active: G.starter, shotgun: false, blasts: 0, saved: false });
+  Object.assign(G, { state: 'playing', score: 0, streak: 0, bestStreak: 0, correct: 0, seen: 0, level: 1, active: G.starter, shotgun: false, blasts: 0, saved: false, lives: 2 });
   timeScale = 1; grade.uniforms.uHurt.value = 0; doorPivot.rotation.y = 0;
   recentLines.length = 0;
   placeMaids(); updateHUD();
   UI.menu.classList.add('hide'); UI.over.classList.add('hide'); UI.hud.classList.add('on');
   setControls(true, true);
   camMode = 'game';
-  banner('Round 1', `${activeMaid().name} opens the bar`);
+  banner('Round 1', `${player} opens the bar`);
   await wait(1.6); if (run !== G.run) return;
   nextCustomer(run);
 }
@@ -1357,8 +1344,7 @@ async function decide(choice) {
     sfx.coin();
     // revive on big streaks
     if (G.streak % 10 === 0) {
-      const downed = MAIDS.find(m => !m.alive);
-      if (downed) await revive(downed, run);
+      if (G.lives < 2) { G.lives++; updateHUD(); banner('Extra life!', `${G.streak} in a row — ${player} is back to full health`); sfx.cheer(); await wait(1); if (run !== G.run) return; }
     }
     // hot streak: every 5 in a row hands you the shotgun for the next villain
     if (G.streak % 5 === 0 && !G.shotgun && run === G.run) {
@@ -1567,28 +1553,32 @@ async function seqWrong(c, choice, run) {
   puff(P.root.position.clone().add(new THREE.Vector3(0, .4, -.6)), 10, 0xa89a8a, .5, .6, 1);
   await tween(.4, k => { P.root.position.y = -1.3 * k; }, easeIn);
   P.root.visible = false;
-  m.alive = false; m.role = 'down'; updateHUD();
-  const other = MAIDS.find(x => x.alive);
-  banner(m.name + ' is down!', other ? `${other.name} takes over the bar` : 'Nobody left behind the bar…', true);
+  G.lives--; updateHUD();
+  const out = G.lives <= 0;
+  banner(`${player} is hit!`, out ? 'Closing time…' : `${G.lives} life left — back on your feet!`, true);
   // customer leaves laughing
   sfx.laugh();
   if (run !== G.run) return;
   tween(.5, k => C.body.position.y = Math.abs(Math.sin(k * PI * 3)) * .05, lin);
   await wait(.6);
-  const leaving = C; G.cust = null;
+  G.cust = null;
   (async () => {
     tween(.25, k => C.armR.rotation.x = lerp(-PI / 2, 0, k));
     await walkTo(C, DOOR.x + .3, DOOR.z - .3, 3.2);
     await tween(.3, k => setOpacity(C, 1 - k), lin); removePerson(C);
   })();
-  if (!other) { await wait(1.2); if (run === G.run) gameOver(); return; }
-  // the other barmaid steps in
-  await wait(.6); if (run !== G.run) return;
-  G.active = MAIDS.indexOf(other); other.role = 'moving'; other.glass.visible = false;
-  resetPose(other.P);
-  await walkTo(other.P, SPOT_ACTIVE.x, SPOT_ACTIVE.z, 2.4);
-  await tween(.25, k => other.P.root.rotation.y = angLerp(other.P.root.rotation.y, 0, k));
-  other.role = 'active'; updateHUD();
+  if (out) { m.alive = false; await wait(1.2); if (run === G.run) gameOver(); return; }
+  await wait(.5); if (run !== G.run) return;
+  await standUp(m, run);
+}
+
+async function standUp(m, run) {
+  const P = m.P; resetPose(P); setOpacity(P, 1); setEmissive(P, 0, 0);
+  P.root.visible = true; P.root.position.set(SPOT_ACTIVE.x, -1.3, SPOT_ACTIVE.z); P.root.rotation.y = 0;
+  m.alive = true; m.role = 'active'; m.glass.visible = false; updateHUD();
+  sfx.cheer();
+  await tween(.6, k => P.root.position.y = -1.3 * (1 - k), easeOut);
+  sparks(P.root.position.clone().add(new THREE.Vector3(0, 1.8, 0)), 18, 0xffe08a);
 }
 
 async function revive(m, run) {
@@ -1618,10 +1608,8 @@ function gameOver() {
   updateBest();
   // leaderboard
   G.lastResult = G.score > 0 ? { score: G.score, correct: G.correct, best_streak: G.bestStreak, round: G.level } : null;
-  $('goAddName').style.display = 'none'; $('goRank').textContent = '';
-  if (!G.lastResult) return;
-  if (player) saveResult();
-  else { $('goAddName').style.display = ''; $('goRank').textContent = 'Add your name to get on the leaderboard'; }
+  $('goRank').textContent = '';
+  if (G.lastResult && player) saveResult(); else renderBoard('lbOver');
 }
 function updateBest() { $('bestMenu').textContent = G.best ? `YOUR BEST: ${G.best.toLocaleString()}` : ''; }
 
@@ -1651,11 +1639,11 @@ async function flushPending() {
 }
 async function saveResult() {
   const res = G.lastResult; if (!res || !player || G.saved) return;
-  G.saved = true; $('goAddName').style.display = 'none';
+  G.saved = true;
   pending([...pending(), { name: player, ...res }]);
   $('goRank').textContent = 'Saving to the leaderboard…';
   const { left } = await flushPending();
-  if (left) { $('goRank').textContent = 'Offline — your score will be saved next time you play.'; return; }
+  if (left) { $('goRank').textContent = 'Offline — your score will be saved next time you play.'; renderBoard('lbOver'); return; }
   try {
     const top = await rpc('jubilee_top', { p_limit: 100 });
     const i = top.findIndex(r => r.name.toLowerCase() === player.toLowerCase());
@@ -1663,48 +1651,33 @@ async function saveResult() {
     if (i < 0) $('goRank').textContent = `Saved for ${player} ✓`;
     else if (mine.score === res.score) $('goRank').textContent = i === 0 ? `🏆 ${player} is #1 in the Jubilee!` : `Saved ✓  ${player} is #${i + 1} on the leaderboard`;
     else $('goRank').textContent = `Saved ✓  ${player}'s best is still ${mine.score.toLocaleString()} (#${i + 1})`;
-  } catch (e) { $('goRank').textContent = `Saved for ${player} ✓`; }
+    fillBoard('lbOver', top.slice(0, 10));
+  } catch (e) { $('goRank').textContent = `Saved for ${player} ✓`; renderBoard('lbOver'); }
 }
-function refreshWho() {
-  $('whoTxt').innerHTML = '';
-  if (player) { $('whoTxt').append('Playing as '); const b = document.createElement('b'); b.textContent = player; $('whoTxt').append(b); $('addName').textContent = '✎ CHANGE'; }
-  else { $('whoTxt').textContent = 'New here?'; $('addName').textContent = '＋ ADD NAME'; }
+function fillBoard(id, top) {
+  const list = $(id + 'List'), st = $(id + 'Status'); list.innerHTML = '';
+  st.textContent = top.length ? '' : 'No scores yet — be the first legend of the Jubilee!';
+  top.forEach((r, i) => {
+    const li = document.createElement('li'); if (player && r.name.toLowerCase() === player.toLowerCase()) li.className = 'me';
+    const rk = document.createElement('span'); rk.className = 'rk'; rk.textContent = i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1;
+    const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = r.name;
+    const meta = document.createElement('span'); meta.className = 'meta';
+    meta.textContent = `Round ${r.round} · best streak ${r.best_streak} · ${r.games} game${r.games > 1 ? 's' : ''}`;
+    nm.append(meta);
+    const sc = document.createElement('span'); sc.className = 'sc'; sc.textContent = r.score.toLocaleString();
+    li.append(rk, nm, sc); list.append(li);
+  });
 }
-let nameThen = null;
-function openName(then) {
-  nameThen = then || null;
-  $('nameIn').value = player; $('nameErr').textContent = '';
-  $('nameCancel').textContent = then === 'play' ? 'Play without a name' : 'Cancel';
-  $('nameOv').classList.remove('hide');
-  setTimeout(() => $('nameIn').focus(), 60);
-}
-function closeName() { $('nameOv').classList.add('hide'); $('nameIn').blur(); }
-function saveName() {
-  const n = cleanName($('nameIn').value);
-  if (!n) { $('nameErr').textContent = 'Go on — pop a name in.'; return; }
-  player = n; store('jub_name', n); refreshWho(); closeName(); clink(.12);
-  const then = nameThen; nameThen = null;
-  if (then === 'play') startGame();
-  else if (then === 'save') { G.saved = false; saveResult(); }
-}
-async function openBoard() {
-  $('lbOv').classList.remove('hide');
-  const list = $('lbList'); list.innerHTML = ''; $('lbStatus').textContent = 'Fetching the scores…';
+async function renderBoard(id) {
+  const st = $(id + 'Status'); if (!$(id + 'List').children.length) st.textContent = 'Fetching the scores…';
   await flushPending().catch(() => {});
-  try {
-    const top = await rpc('jubilee_top', { p_limit: 20 });
-    $('lbStatus').textContent = top.length ? '' : 'No scores yet — be the first legend of the Jubilee!';
-    top.forEach((r, i) => {
-      const li = document.createElement('li'); if (player && r.name.toLowerCase() === player.toLowerCase()) li.className = 'me';
-      const rk = document.createElement('span'); rk.className = 'rk'; rk.textContent = i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1;
-      const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = r.name;
-      const meta = document.createElement('span'); meta.className = 'meta';
-      meta.textContent = `Round ${r.round} · ${r.correct} calls · best streak ${r.best_streak} · ${r.games} game${r.games > 1 ? 's' : ''}`;
-      nm.append(meta);
-      const sc = document.createElement('span'); sc.className = 'sc'; sc.textContent = r.score.toLocaleString();
-      li.append(rk, nm, sc); list.append(li);
-    });
-  } catch (e) { $('lbStatus').textContent = "Couldn't reach the leaderboard. Check your connection and try again."; }
+  try { fillBoard(id, await rpc('jubilee_top', { p_limit: 10 })); }
+  catch (e) { st.textContent = "Couldn't reach the leaderboard right now."; }
+}
+function readName() {
+  const n = cleanName($('nameIn').value);
+  if (!n) { $('nameErr').textContent = 'Enter your name to open the bar'; $('nameIn').focus(); return false; }
+  $('nameErr').textContent = ''; player = n; store('jub_name', n); return true;
 }
 
 /* ============================== full screen ============================== */
@@ -1753,49 +1726,37 @@ function positionBubble() {
 $('bServe').addEventListener('pointerdown', e => { e.preventDefault(); decide('serve'); });
 $('bShoot').addEventListener('pointerdown', e => { e.preventDefault(); decide('shoot'); });
 addEventListener('keydown', e => {
-  if (e.target && e.target.tagName === 'INPUT') {
-    if (e.key === 'Enter') saveName();
-    if (e.key === 'Escape') { closeName(); if (nameThen === 'play') { nameThen = null; startGame(); } }
-    return;
-  }
+  if (e.target && e.target.tagName === 'INPUT') { if (e.key === 'Enter') $('play').click(); return; }
   if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') decide('serve');
   if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd' || e.key === ' ') decide('shoot');
   if (e.key.toLowerCase() === 'f') toggleFS();
 });
 document.querySelectorAll('.card').forEach(cd => cd.addEventListener('click', () => {
   document.querySelectorAll('.card').forEach(x => x.classList.remove('sel')); cd.classList.add('sel');
-  G.starter = +cd.dataset.m; initAudio(); clink(.1);
+  G.starter = +cd.dataset.m; store('jub_role', G.starter); initAudio(); clink(.1);
   if (G.state === 'menu') { G.active = G.starter; placeMaids(); }
 }));
-let askedName = false;
-$('play').addEventListener('click', () => { initAudio(); if (!player && !askedName) { askedName = true; openName('play'); } else startGame(); });
+$('play').addEventListener('click', () => { initAudio(); if (readName()) { $('nameIn').blur(); startGame(); } });
 $('again').addEventListener('click', startGame);
-$('toMenu').addEventListener('click', () => { G.run++; tweens = []; timeScale = 1; if (G.cust) { removePerson(G.cust.P); G.cust = null; } G.state = 'menu'; G.shotgun = false; G.active = G.starter; placeMaids(); updateHUD(); doorPivot.rotation.y = 0; UI.over.classList.add('hide'); UI.menu.classList.remove('hide'); updateBest(); });
-$('addName').addEventListener('click', () => { initAudio(); openName(); });
-$('goAddName').addEventListener('click', () => openName('save'));
-$('nameSave').addEventListener('click', saveName);
-$('nameCancel').addEventListener('click', () => { const t = nameThen; nameThen = null; closeName(); if (t === 'play') startGame(); });
-$('lbMenu').addEventListener('click', openBoard);
-$('lbOver').addEventListener('click', openBoard);
-$('lbClose').addEventListener('click', () => $('lbOv').classList.add('hide'));
+$('toMenu').addEventListener('click', () => { G.run++; tweens = []; timeScale = 1; if (G.cust) { removePerson(G.cust.P); G.cust = null; } G.state = 'menu'; G.shotgun = false; G.active = G.starter; placeMaids(); updateHUD(); doorPivot.rotation.y = 0; UI.over.classList.add('hide'); UI.menu.classList.remove('hide'); updateBest(); renderBoard('lbMenu'); });
 $('fs').addEventListener('click', toggleFS);
 $('fsMenu').addEventListener('click', toggleFS);
-refreshWho(); refreshFS();
+$('nameIn').value = player; refreshFS(); renderBoard('lbMenu');
+G.starter = +(store('jub_role') || 0); document.querySelectorAll('.card').forEach(x => x.classList.toggle('sel', +x.dataset.m === G.starter));
 $('mute').addEventListener('click', () => { muted = !muted; store('jub_mute', muted ? '1' : '0'); $('mute').textContent = muted ? '🔇' : '🔊'; initAudio(); if (master) master.gain.value = muted ? 0 : .8; });
 $('mute').textContent = muted ? '🔇' : '🔊';
 
 /* menu avatars: tiny live renders of the barmaids' faces */
 function drawAvatar(el, m) {
   el.innerHTML = `<svg viewBox="0 0 72 72" width="72" height="72">
-    ${m.name === 'Summer' ? `<path d="M12 34c0-18 10-28 24-28s24 10 24 28v30H12z" fill="${m.hair}"/>` : `<path d="M50 20c14 4 16 22 10 34-2-10-6-18-10-22z" fill="${m.hair}"/>`}
+    ${m.name === 'Barman' ? `` : `<path d="M50 20c14 4 16 22 10 34-2-10-6-18-10-22z" fill="${m.hair}"/>`}
     <ellipse cx="36" cy="38" rx="18" ry="20" fill="#${m.o.skin.toString(16)}"/>
     <path d="M17 34c0-14 8-22 19-22s19 8 19 22c-6-8-12-11-19-11s-14 4-19 11z" fill="${m.hair}"/>
     <circle cx="29" cy="38" r="2.6" fill="#222"/><circle cx="43" cy="38" r="2.6" fill="#222"/>
-    <path d="M30 47q6 5 12 0" stroke="#c0303c" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+    ${m.name === 'Barman' ? `<path d="M19 40c0 14 8 22 17 22s17-8 17-22c-4 6-9 8-17 8s-13-2-17-8z" fill="${m.hair}"/><path d="M30 48q6 4 12 0" stroke="#7a1f1f" stroke-width="2.6" fill="none" stroke-linecap="round"/>` : `<path d="M30 47q6 5 12 0" stroke="#c0303c" stroke-width="2.6" fill="none" stroke-linecap="round"/>`}
     <path d="M18 68c2-10 9-14 18-14s16 4 18 14z" fill="#${m.o.shirt.toString(16)}"/></svg>`;
 }
 drawAvatar($('av0'), MAIDS[0]); drawAvatar($('av1'), MAIDS[1]);
-$('chip0').style.setProperty('--hair', MAIDS[0].hair); $('chip1').style.setProperty('--hair', MAIDS[1].hair);
 
 /* ============================== seated regulars (ambience) ============================== */
 const regulars = [];
@@ -1896,7 +1857,7 @@ function update(dt) {
   const am = activeMaid();
   if (G.state !== 'menu' && G.state !== 'gameover' && am.alive && am.P.root.visible) {
     const p = toScreen(new THREE.Vector3(am.P.root.position.x, 2.0, am.P.root.position.z));
-    UI.mname.style.display = 'block'; UI.mname.textContent = am.name.toUpperCase();
+    UI.mname.style.display = 'block'; UI.mname.textContent = player.toUpperCase();
     UI.mname.style.left = p.x + 'px'; UI.mname.style.top = clamp(p.y, 80, innerHeight) + 'px';
   } else UI.mname.style.display = 'none';
 
@@ -1951,7 +1912,7 @@ setTimeout(() => { const l = $('loading'); l.style.opacity = 0; setTimeout(() =>
 (document.fonts && document.fonts.load ? document.fonts.load('100px Rye') : Promise.resolve()).then(() => { drawSign(signTex.userData.canvas.getContext('2d'), 1024, 256); signTex.needsUpdate = true; }).catch(() => {});
 document.addEventListener('visibilitychange', () => { if (AC) document.hidden ? AC.suspend() : AC.resume(); });
 // test hook
-window.__jub = { G, decide, MAIDS, startGame, openBoard, gameOver, toggleFS,
+window.__jub = { G, decide, MAIDS, startGame, renderBoard, gameOver, toggleFS,
   setQuality(q) { qLevel = q; applyQuality(); },
   async step(sec, noRender) { paused = true; for (let t = 0; t < sec; t += 1 / 60) { update(1 / 60 * timeScale); for (let i = 0; i < 4; i++) await Promise.resolve(); } if (!noRender) render(); },
   resume() { paused = false; } };
