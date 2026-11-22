@@ -105,6 +105,7 @@
   .card{flex:1;border-radius:18px;padding:12px 8px 10px;background:#ffffff0d;border:2px solid #ffffff1a;text-align:center;transition:all .2s;cursor:pointer;font-family:inherit;color:inherit}
   .card.sel{border-color:var(--gold);background:#f5c35a1f;box-shadow:0 0 20px #f5c35a33}
   .card .av{width:72px;height:72px;margin:0 auto 8px;position:relative}
+  .card .av img{width:72px;height:72px;border-radius:50%;object-fit:cover;display:block;border:2px solid #f5c35a99;box-shadow:0 4px 12px #0008}
   .card .nm{font-family:'Rye',Georgia,serif;font-size:21px;color:var(--gold2)}
   .card .ds{font-size:12px;color:#d9b88a;font-weight:700}
   .how{max-width:400px;width:100%;background:#00000055;border-radius:16px;padding:12px 14px;font-size:13.5px;line-height:1.45;color:#f0dcc0;margin-bottom:16px;border:1px solid #ffffff12}
@@ -924,7 +925,7 @@ const SPOT_ACTIVE = new THREE.Vector3(-.55, 0, -.8);
 const SPOT_IDLE = new THREE.Vector3(-2.2, 0, -1.05);
 const CUST_SPOT = new THREE.Vector3(.6, 0, 1.0);
 const MAIDS = [
-  { name: 'Barmaid', hair: '#f5d37a', o: { skin: 0xffd9b8, hairColor: 0xf3cf6c, hairStyle: 'ponytail', shirt: 0xc8102e, skirt: 0x1d1d1d, pants: 0x1d1d1d, dress: true, apron: true, shortSleeve: true, lips: true, scrunchie: 0x1d1d1d, height: 1 } },
+  { name: 'Barmaid', photo: 'barmaid.jpg', hair: '#f5d37a', o: { skin: 0xffd9b8, hairColor: 0xf3cf6c, hairStyle: 'ponytail', shirt: 0xc8102e, skirt: 0x1d1d1d, pants: 0x1d1d1d, dress: true, apron: true, shortSleeve: true, lips: true, scrunchie: 0x1d1d1d, height: 1 } },
   { name: 'Barman', hair: '#3a2414', o: { skin: 0xf1c27d, hairColor: 0x3a2414, hairStyle: 'short', shirt: 0x2b4d8c, pants: 0x1d1d1d, apron: true, shortSleeve: true, beard: true, height: 1.05 } },
 ];
 MAIDS[0].o.eyeColor = 0x2a6a9c; MAIDS[1].o.eyeColor = 0x3b2414;
@@ -1763,6 +1764,7 @@ $('mute').textContent = muted ? '🔇' : '🔊';
 
 /* menu avatars: tiny live renders of the barmaids' faces */
 function drawAvatar(el, m) {
+  if (m.photo) { el.innerHTML = `<img src="${m.photo}" alt="${m.name}" width="72" height="72">`; return; }
   el.innerHTML = `<svg viewBox="0 0 72 72" width="72" height="72">
     ${m.name === 'Barman' ? `` : `<path d="M50 20c14 4 16 22 10 34-2-10-6-18-10-22z" fill="${m.hair}"/>`}
     <ellipse cx="36" cy="38" rx="18" ry="20" fill="#${m.o.skin.toString(16)}"/>
