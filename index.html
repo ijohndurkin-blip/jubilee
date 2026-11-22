@@ -793,6 +793,12 @@ function makePerson(o) {
     add(new THREE.BoxGeometry(.34, .5, .02), mat(0xf6f1e7), 0, .78, .25);
   }
   if (o.coat) { const col = add(new THREE.TorusGeometry(.14, .04, 6, 16), top, 0, 1.5, 0); col.rotation.x = PI / 2; }
+  if (o.hoodie) {
+    const hood = add(new THREE.SphereGeometry(.17, 20, 12), top, 0, 1.5, -.15); hood.scale.set(1, .45, .6);
+    const col = add(new THREE.TorusGeometry(.1, .028, 8, 20), top, 0, 1.49, -.01); col.rotation.x = PI / 2;
+    const pocket = add(new THREE.BoxGeometry(.3, .16, .03), mat(new THREE.Color(o.shirt).multiplyScalar(.75)), 0, 1.0, .225); pocket.rotation.x = -.08;
+    for (const s of [-1, 1]) add(new THREE.CylinderGeometry(.006, .006, .16, 5), mat(0x222222), .04 * s, 1.38, .225);
+  }
   add(new THREE.CylinderGeometry(.06, .065, .12, 8), skin, 0, 1.52, 0);
   // arms
   const mkArm = s => {
@@ -808,25 +814,35 @@ function makePerson(o) {
   // head
   const head = new THREE.Group(); head.position.set(0, 1.69, 0); body.add(head); P.head = head;
   const hs = add(G_.head, skin, 0, 0, 0, head); hs.scale.set(.95, 1.05, 1);
-  const white = mat(0xf4f0ea, { roughness: .2, envMapIntensity: .2 });
-  const eyeM = mat(o.eyeColor ?? pick(EYE_COLS), { roughness: .12, emissive: 0x000000, envMapIntensity: 1 }); P.eyeMats.push(eyeM);
-  const pupM = mat(0x050505, { roughness: .05, emissive: 0x000000, envMapIntensity: 1.4 }); P.eyeMats.push(pupM);
-  for (const s of [-1, 1]) {
-    add(G_.eyeW, white, .062 * s, .02, .135, head);
-    add(G_.eye, eyeM, .062 * s, .02, .158, head);
-    add(G_.pupil, pupM, .062 * s, .02, .174, head);
-    const ear = add(G_.ear, skin, .163 * s, -.005, 0, head); ear.scale.set(.45, 1, .75);
+  if (o.photoFace) {
+    // a real face from a photo, wrapped round the front of the head
+    const fm = mat(0xffffff, { map: o.photoFace, transparent: true, roughness: .62, envMapIntensity: .12 });
+    const patch = new THREE.Mesh(new THREE.SphereGeometry(.1735, 40, 30, PI / 2 - 1.12, 2.24, .42, 2.05), fm);
+    hs.add(patch);
+    for (const s of [-1, 1]) { const ear = add(G_.ear, skin, .163 * s, -.005, -.01, head); ear.scale.set(.45, 1, .75); }
+    P.brows = []; P.mouth = new THREE.Object3D();
+  } else {
+    const white = mat(0xf4f0ea, { roughness: .2, envMapIntensity: .2 });
+    const eyeM = mat(o.eyeColor ?? pick(EYE_COLS), { roughness: .12, emissive: 0x000000, envMapIntensity: 1 }); P.eyeMats.push(eyeM);
+    const pupM = mat(0x050505, { roughness: .05, emissive: 0x000000, envMapIntensity: 1.4 }); P.eyeMats.push(pupM);
+    for (const s of [-1, 1]) {
+      add(G_.eyeW, white, .062 * s, .02, .135, head);
+      add(G_.eye, eyeM, .062 * s, .02, .158, head);
+      add(G_.pupil, pupM, .062 * s, .02, .174, head);
+      const ear = add(G_.ear, skin, .163 * s, -.005, 0, head); ear.scale.set(.45, 1, .75);
+    }
+    if (o.lips) for (const s of [-1, 1]) { const ck = add(new THREE.SphereGeometry(.03, 10, 8), mat(new THREE.Color(o.skin).lerp(new THREE.Color(0xe0606a), .4), { roughness: .6 }), .095 * s, -.04, .13, head); ck.scale.set(1, .6, .4); }
+    P.brows = [-1, 1].map(s => { const b = add(G_.brow, hairM, .062 * s, .075, .152, head); b.userData.s = s; return b; });
+    add(G_.nose, skin, 0, -.015, .17, head);
+    P.mouth = add(G_.mouth, mat(0x7a1f1f, { roughness: .5 }), 0, -.075, o.beard ? .172 : .158, head);
+    if (o.lips) P.mouth.material.color.set(0xc0303c);
   }
-  if (o.lips) for (const s of [-1, 1]) { const ck = add(new THREE.SphereGeometry(.03, 10, 8), mat(new THREE.Color(o.skin).lerp(new THREE.Color(0xe0606a), .4), { roughness: .6 }), .095 * s, -.04, .13, head); ck.scale.set(1, .6, .4); }
-  P.brows = [-1, 1].map(s => { const b = add(G_.brow, hairM, .062 * s, .075, .152, head); b.userData.s = s; return b; });
-  add(G_.nose, skin, 0, -.015, .17, head);
-  P.mouth = add(G_.mouth, mat(0x7a1f1f, { roughness: .5 }), 0, -.075, o.beard ? .172 : .158, head);
-  if (o.lips) P.mouth.material.color.set(0xc0303c);
   // hair
   const hs_ = o.hairStyle;
   if (hs_ !== 'bald') {
-    if (hs_ !== 'mohawk') add(G_.cap, hairM, 0, .012, -.008, head);
-    if (hs_ === 'short' || hs_ === 'bun') add(backHair(.62), hairM, 0, 0, 0, head);
+    if (hs_ === 'buzz') add(new THREE.SphereGeometry(.18, 28, 10, 0, TAU, 0, PI * .2), hairM, 0, .014, -.006, head);
+    else if (hs_ !== 'mohawk') add(G_.cap, hairM, 0, .012, -.008, head);
+    if (hs_ === 'short' || hs_ === 'bun' || hs_ === 'buzz') add(backHair(.62), hairM, 0, 0, 0, head);
     if (hs_ === 'ponytail' || hs_ === 'long') add(backHair(.8), hairM, 0, 0, 0, head);
     if (hs_ === 'ponytail') {
       const g = new THREE.Group(); g.position.set(0, .09, -.16); g.rotation.x = .45; head.add(g);
@@ -1788,6 +1804,50 @@ const regulars = [];
   regulars.push({ P, t: rand(0, 6), ph: rand(0, 10) });
 });
 
+/* ============================== the fella at the end of the bar ============================== */
+// a regular in a dark hoodie, perched on the end stool, arms crossed on the bar, bottle of beer at his elbow
+const fella = (() => {
+  const SX = 1.8, SZ = .95, SC = 1.04;
+  const faceTex = new THREE.TextureLoader().load('regular-face.png'); faceTex.colorSpace = THREE.SRGBColorSpace; faceTex.anisotropy = 4;
+  const P = makePerson({ skin: 0x7a4f3e, hairColor: 0x3a2a20, hairStyle: 'buzz', shirt: 0x35372f, pants: 0x26282c, photoFace: faceTex, hoodie: true, height: SC });
+  P.skinMat.color.set(0x6e4536);
+  P.root.position.set(SX, -.08, SZ); P.root.rotation.y = PI; P.blob.position.y = .09;
+  const skin = P.skinMat, sleeve = P.mats[1];
+  const limb = (a, b, r, m) => { // capsule from a to b in the body's space
+    const d = new THREE.Vector3().subVectors(b, a), len = d.length();
+    const me = new THREE.Mesh(new THREE.CapsuleGeometry(r, Math.max(.01, len - r * 2), 6, 12), m);
+    me.position.copy(a).addScaledVector(d, .5); me.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize());
+    me.castShadow = true; P.body.add(me); return me;
+  };
+  // seated legs: thigh forward, shin down to the brass foot rail
+  P.legs.forEach((g, i) => {
+    g.children.forEach(c => c.visible = false);
+    const x = g.position.x, hip = new THREE.Vector3(x, .86, 0), knee = new THREE.Vector3(x * 1.3, .84, .4), ank = new THREE.Vector3(x * 1.2, .3, .38 + i * .04);
+    limb(hip, knee, .078, P.mats[2]); limb(knee, ank, .068, P.mats[2]);
+    const shoe = new THREE.Mesh(new THREE.SphereGeometry(.075, 14, 10), P.mats[3]); shoe.scale.set(.9, .6, 1.55); shoe.position.set(ank.x, .25, ank.z + .05); P.body.add(shoe);
+  });
+  // upper arms reach forward to the bar top, forearms folded across each other
+  P.handL.visible = P.handR.visible = false;
+  [P.armL, P.armR].forEach(a => a.visible = false);
+  const shL = new THREE.Vector3(.29, 1.42, 0), shR = new THREE.Vector3(-.29, 1.42, 0);
+  const elL = new THREE.Vector3(.27, 1.235, .55), elR = new THREE.Vector3(-.27, 1.235, .55);
+  limb(shL, elL, .066, sleeve); limb(shR, elR, .066, sleeve);
+  limb(elL, new THREE.Vector3(-.13, 1.245, .68), .058, sleeve); limb(elR, new THREE.Vector3(.13, 1.285, .66), .058, sleeve);
+  for (const [x, y, z] of [[-.17, 1.245, .69], [.17, 1.285, .67]]) { const h = new THREE.Mesh(G_.hand, skin); h.position.set(x, y, z); h.scale.set(.85, .7, 1); h.castShadow = true; P.body.add(h); }
+  // lean in a touch and look out over the pub
+  P.head.rotation.x = .08;
+  // brown bottle of beer by his right elbow
+  const bottle = new THREE.Group(); bottle.position.set(SX + .42, BAR_TOP, .42); scene.add(bottle);
+  const glassM = new THREE.MeshStandardMaterial({ color: 0x4a2208, roughness: .08, metalness: .1, transparent: true, opacity: .88, envMapIntensity: 1.2 });
+  const bBody = new THREE.Mesh(new THREE.CylinderGeometry(.033, .033, .15, 18), glassM); bBody.position.y = .075; bottle.add(bBody);
+  const bSh = new THREE.Mesh(new THREE.CylinderGeometry(.013, .033, .05, 18), glassM); bSh.position.y = .175; bottle.add(bSh);
+  const bNeck = new THREE.Mesh(new THREE.CylinderGeometry(.012, .013, .06, 14), glassM); bNeck.position.y = .23; bottle.add(bNeck);
+  const lab = new THREE.Mesh(new THREE.CylinderGeometry(.0335, .0335, .06, 18, 1, true), M(0xe8d9a8, { roughness: .7 })); lab.position.y = .07; bottle.add(lab);
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(.014, .014, .01, 12), CM('brass', 0xc9a24a)); cap.position.y = .262; bottle.add(cap);
+  bottle.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return { P, bottle };
+})();
+
 /* ============================== main loop ============================== */
 let last = performance.now(), T = 0, paused = false;
 function frame(now) {
@@ -1832,6 +1892,11 @@ function update(dt) {
       } else { P.armL.rotation.z = .12 + b * .02; P.armR.rotation.z = -.12 - b * .02; }
     }
   });
+  { // the fella: slow breathing, glances round the pub
+    const P = fella.P;
+    P.body.scale.y = 1 + Math.sin(T * 1.6) * .006;
+    P.head.rotation.y = Math.sin(T * .23) * .45 + Math.sin(T * .71) * .08;
+  }
   regulars.forEach((r, i) => {
     r.t += dt; const P = r.P;
     P.head.rotation.y = Math.sin(T * .5 + r.ph) * .5;
@@ -1902,7 +1967,8 @@ function update(dt) {
   grade.uniforms.uTime.value = T;
 
   // camera
-  if (camMode === 'menu') {
+  if (camMode === 'debug') {
+  } else if (camMode === 'menu') {
     const a = T * .12;
     camCur.pos.set(CAM_POS.x + Math.sin(a) * 1.4, CAM_POS.y - .2 + Math.sin(a * 1.7) * .15, CAM_POS.z + Math.cos(a) * .2);
     camCur.look.set(CAM_LOOK.x + Math.sin(a * .7) * .6, CAM_LOOK.y + .3, CAM_LOOK.z);
@@ -1931,6 +1997,7 @@ document.addEventListener('visibilitychange', () => { if (AC) document.hidden ? 
 // test hook
 window.__jub = { G, decide, MAIDS, startGame, renderBoard, gameOver, toggleFS,
   setQuality(q) { qLevel = q; applyQuality(); },
+  debugCam(p, l, fm = 1) { camMode = 'debug'; camCur.pos.set(...p); camCur.look.set(...l); camCur.fm = fm; },
   async step(sec, noRender) { paused = true; for (let t = 0; t < sec; t += 1 / 60) { update(1 / 60 * timeScale); for (let i = 0; i < 4; i++) await Promise.resolve(); } if (!noRender) render(); },
   resume() { paused = false; } };
 </script>
