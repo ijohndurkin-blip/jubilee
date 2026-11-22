@@ -1066,6 +1066,13 @@ function genCustomer(level) {
   };
 }
 
+// personal greetings: customers say hello to certain players before they speak
+const GREETINGS = { mia: 'Hiya Gail' };
+function greet(line) {
+  const g = GREETINGS[(player || '').trim().toLowerCase()];
+  return g ? `${g}! ${line}` : line;
+}
+
 /* ============================== tween system ============================== */
 let tweens = [];
 function tween(d, fn, ease = easeIO) { return new Promise(res => tweens.push({ t: 0, d: Math.max(d, .0001), fn, ease, res })); }
@@ -1300,7 +1307,7 @@ async function nextCustomer(run) {
   // decision time
   G.timerMax = Math.max(3.0, 9.5 - .65 * (G.level - 1));
   G.timer = G.timerMax; G.seen++;
-  UI.bname.textContent = c.name; UI.bline.textContent = '“' + c.line + '”';
+  UI.bname.textContent = c.name; UI.bline.textContent = '“' + greet(c.line) + '”';
   UI.bubble.classList.remove('show'); void UI.bubble.offsetWidth; UI.bubble.classList.add('show');
   positionBubble();
   if (G.seen <= 2) { UI.hint.textContent = G.seen === 1 ? 'Good → SERVE · Evil → SHOOT' : 'Watch the eyes… and the hands'; UI.hint.classList.add('on'); }
