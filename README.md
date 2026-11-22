@@ -9,7 +9,7 @@ Type your name, pick **Barmaid** or **Barman**, and open the bar. Your name stay
 
 ## Features
 
-- **Player names + global leaderboard.** Every player enters a name before playing. The **Hall of Fame** (best score per player) shows on the start screen and again at closing time. Every finished shift is saved for good. Scores made offline are queued and sent the next time you play.
+- **Player names + global leaderboard.** Every player enters a name before playing. The **Hall of Fame** (top 20 games — a player can appear more than once) shows on the start screen and again at closing time. Every finished shift is saved for good. Scores made offline are queued and sent the next time you play.
 - **Full screen.** Use the ⛶ button (or press **F**). On iPhone, tap Share → *Add to Home Screen* and open it from there to play full screen.
 - **Sneakier every round.** From round 2 on, villains hide their tells: less coats and shifty looks, more smiles, friendly small talk, quicker and dimmer red eye glints. Meanwhile the regulars look shiftier, say alarming things, and their glasses catch the light. Only the red flash in the eyes never lies.
 - **Shotgun streaks.** Get **5 right in a row** and you're handed a shotgun. It stays loaded until the next villain walks in: hit **BLAST** and they get blown in slow motion clean out of the front door, for double points + 250. A wrong call drops it.

@@ -144,7 +144,7 @@
   #nameErr{min-height:20px;color:#ff8a94;font-weight:800;font-size:13px;margin-bottom:10px;text-align:center}
   .lb{list-style:none;margin:6px 0 10px;padding:0;width:100%}
   .lb li{display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;padding:9px 12px;margin:5px 0;border-radius:14px;background:#ffffff0c;border:1px solid #ffffff10}
-  .lb li.me{background:#f5c35a22;border-color:var(--gold)}
+  .lb li.me{border-color:#f5c35a88}
   .lb .rk{font-family:'Rye',Georgia,serif;font-size:18px;color:#c9a77a;text-align:center}
   .lb li:nth-child(1) .rk{color:#ffd34d;font-size:22px}
   .lb li:nth-child(2) .rk{color:#d9d9e6}
@@ -156,6 +156,8 @@
   #goRank{font-weight:900;color:var(--gold2);text-align:center;min-height:20px;margin:-6px 0 14px;font-size:15px}
   #fsTip{font-size:12px;color:#c9a77a;font-weight:800;text-align:center;margin-top:8px;display:none;max-width:320px}
   .board{width:100%;background:#00000055;border:1px solid #ffffff14;border-radius:18px;padding:10px 12px 4px;margin:14px 0 6px}
+  .newtag{font-size:10px;font-weight:900;letter-spacing:.1em;color:#2a1508;background:var(--gold);border-radius:6px;padding:2px 5px;vertical-align:middle}
+  .lb li.new{background:#f5c35a33;border-color:var(--gold2);box-shadow:0 0 12px #f5c35a55}
   .board .bh{font-family:'Rye',Georgia,serif;color:var(--gold);font-size:22px;text-align:center}
   .board .lb li{padding:7px 10px;margin:4px 0}
   #pnameTxt{display:block;font-family:'Rye',Georgia,serif;font-size:20px;color:var(--gold2);max-width:42vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
@@ -1652,24 +1654,30 @@ async function saveResult() {
   const { left } = await flushPending();
   if (left) { $('goRank').textContent = 'Offline — your score will be saved next time you play.'; renderBoard('lbOver'); return; }
   try {
-    const top = await rpc('jubilee_top', { p_limit: 100 });
-    const i = top.findIndex(r => r.name.toLowerCase() === player.toLowerCase());
-    const mine = top[i];
-    if (i < 0) $('goRank').textContent = `Saved for ${player} ✓`;
-    else if (mine.score === res.score) $('goRank').textContent = i === 0 ? `🏆 ${player} is #1 in the Jubilee!` : `Saved ✓  ${player} is #${i + 1} on the leaderboard`;
-    else $('goRank').textContent = `Saved ✓  ${player}'s best is still ${mine.score.toLocaleString()} (#${i + 1})`;
-    fillBoard('lbOver', top.slice(0, 10));
+    const top = await rpc('jubilee_top', { p_limit: 20 });
+    const i = findMine(top, res.score);
+    if (i < 0) $('goRank').textContent = `Saved ✓  Not in the top 20 this time — go again!`;
+    else $('goRank').textContent = i === 0 ? `🏆 ${player} is #1 in the Jubilee!` : `Saved ✓  ${player} is #${i + 1} on the leaderboard`;
+    fillBoard('lbOver', top, i);
   } catch (e) { $('goRank').textContent = `Saved for ${player} ✓`; renderBoard('lbOver'); }
 }
-function fillBoard(id, top) {
+// the row for the game just played: newest entry with this player's name and score
+function findMine(top, score) {
+  let best = -1;
+  top.forEach((r, i) => { if (player && r.name.toLowerCase() === player.toLowerCase() && r.score === score && (best < 0 || r.created_at > top[best].created_at)) best = i; });
+  return best;
+}
+function fillBoard(id, top, newIdx = -1) {
   const list = $(id + 'List'), st = $(id + 'Status'); list.innerHTML = '';
   st.textContent = top.length ? '' : 'No scores yet — be the first legend of the Jubilee!';
   top.forEach((r, i) => {
     const li = document.createElement('li'); if (player && r.name.toLowerCase() === player.toLowerCase()) li.className = 'me';
     const rk = document.createElement('span'); rk.className = 'rk'; rk.textContent = i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1;
     const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = r.name;
+    if (i === newIdx) li.classList.add('new');
+    if (i === newIdx) { const t = document.createElement('span'); t.className = 'newtag'; t.textContent = 'NEW'; nm.append(' ', t); }
     const meta = document.createElement('span'); meta.className = 'meta';
-    meta.textContent = `Round ${r.round} · best streak ${r.best_streak} · ${r.games} game${r.games > 1 ? 's' : ''}`;
+    meta.textContent = `Round ${r.round} · best streak ${r.best_streak}`;
     nm.append(meta);
     const sc = document.createElement('span'); sc.className = 'sc'; sc.textContent = r.score.toLocaleString();
     li.append(rk, nm, sc); list.append(li);
@@ -1678,7 +1686,7 @@ function fillBoard(id, top) {
 async function renderBoard(id) {
   const st = $(id + 'Status'); if (!$(id + 'List').children.length) st.textContent = 'Fetching the scores…';
   await flushPending().catch(() => {});
-  try { fillBoard(id, await rpc('jubilee_top', { p_limit: 10 })); }
+  try { fillBoard(id, await rpc('jubilee_top', { p_limit: 20 })); }
   catch (e) { st.textContent = "Couldn't reach the leaderboard right now."; }
 }
 function readName() {
