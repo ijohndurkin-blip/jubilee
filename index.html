@@ -572,7 +572,7 @@ const BAR_TOP = 1.14;
   box(.5, .012, .22, M(0x8a1c1c, { roughness: .9 }), 0.55, BAR_TOP + .006, .18);
   // pumps
   const badgeCols = [0xd4380d, 0x1d6fd4, 0xf2c200, 0x2c9c4a];
-  [[-1.62, 0], [-1.38, 1], [-1.14, 2], [1.6, 3], [1.85, 0]].forEach(([x, c]) => {
+  [[-1.62, 0], [-1.38, 1], [-1.14, 2], [1.12, 3], [1.36, 0]].forEach(([x, c]) => {
     cyl(.05, .06, .1, chrome, x, BAR_TOP + .05, -.08);
     cyl(.025, .025, .24, CM('black', 0x111111, { roughness: .3 }), x, BAR_TOP + .22, -.08);
     const badge = box(.09, .11, .015, M(badgeCols[c], { emissive: badgeCols[c], emissiveIntensity: .25 }), x, BAR_TOP + .3, -.07);
@@ -1808,9 +1808,17 @@ const regulars = [];
 // a regular in a dark hoodie, perched on the end stool, arms crossed on the bar, bottle of beer at his elbow
 const fella = (() => {
   const SX = 1.8, SZ = .95, SC = 1.04;
-  const faceTex = new THREE.TextureLoader().load('regular-face.png'); faceTex.colorSpace = THREE.SRGBColorSpace; faceTex.anisotropy = 4;
-  const P = makePerson({ skin: 0x7a4f3e, hairColor: 0x3a2a20, hairStyle: 'buzz', shirt: 0x35372f, pants: 0x26282c, photoFace: faceTex, hoodie: true, height: SC });
-  P.skinMat.color.set(0x6e4536);
+  const P = makePerson({ skin: 0x8a5a44, hairColor: 0x3a2a20, hairStyle: 'bald', shirt: 0x35372f, pants: 0x26282c, hoodie: true, height: SC });
+  // his real head, cut out of the photo, always turned to face the camera
+  P.head.visible = false;
+  const headTex = new THREE.TextureLoader().load('regular-head.png'); headTex.colorSpace = THREE.SRGBColorSpace; headTex.anisotropy = 4;
+  const HW = .38, HH = HW * 429 / 320;
+  const photoHead = new THREE.Mesh(new THREE.PlaneGeometry(HW, HH), new THREE.MeshBasicMaterial({ map: headTex, transparent: true, alphaTest: .03, color: 0xd6bea6 }));
+  photoHead.position.set(SX, 1.69 * SC - .08 - .06, SZ - .3); scene.add(photoHead);
+  // hoodie bunched round his neck, in front of the photo's neckline
+  const hoodRing = new THREE.Mesh(new THREE.TorusGeometry(.12, .05, 10, 24), P.mats[1]);
+  hoodRing.rotation.x = PI / 2 - .25; hoodRing.scale.set(1.15, 1, 1); hoodRing.position.set(SX, 1.405, SZ - .28); hoodRing.castShadow = true; scene.add(hoodRing);
+  P.body.children.forEach(c => { if (c.isMesh && c.material === P.skinMat && Math.abs(c.position.y - 1.52) < .01) c.visible = false; }); // 3D neck
   P.root.position.set(SX, -.08, SZ); P.root.rotation.y = PI; P.blob.position.y = .09;
   const skin = P.skinMat, sleeve = P.mats[1];
   const limb = (a, b, r, m) => { // capsule from a to b in the body's space
@@ -1833,7 +1841,6 @@ const fella = (() => {
   const elL = new THREE.Vector3(.27, 1.235, .55), elR = new THREE.Vector3(-.27, 1.235, .55);
   limb(shL, elL, .066, sleeve); limb(shR, elR, .066, sleeve);
   limb(elL, new THREE.Vector3(-.13, 1.245, .68), .058, sleeve); limb(elR, new THREE.Vector3(.13, 1.285, .66), .058, sleeve);
-  for (const [x, y, z] of [[-.17, 1.245, .69], [.17, 1.285, .67]]) { const h = new THREE.Mesh(G_.hand, skin); h.position.set(x, y, z); h.scale.set(.85, .7, 1); h.castShadow = true; P.body.add(h); }
   // lean in a touch and look out over the pub
   P.head.rotation.x = .08;
   // brown bottle of beer by his right elbow
@@ -1845,7 +1852,7 @@ const fella = (() => {
   const lab = new THREE.Mesh(new THREE.CylinderGeometry(.0335, .0335, .06, 18, 1, true), M(0xe8d9a8, { roughness: .7 })); lab.position.y = .07; bottle.add(lab);
   const cap = new THREE.Mesh(new THREE.CylinderGeometry(.014, .014, .01, 12), CM('brass', 0xc9a24a)); cap.position.y = .262; bottle.add(cap);
   bottle.traverse(o => { if (o.isMesh) o.castShadow = true; });
-  return { P, bottle };
+  return { P, bottle, photoHead, y0: photoHead.position.y };
 })();
 
 /* ============================== main loop ============================== */
@@ -1895,7 +1902,8 @@ function update(dt) {
   { // the fella: slow breathing, glances round the pub
     const P = fella.P;
     P.body.scale.y = 1 + Math.sin(T * 1.6) * .006;
-    P.head.rotation.y = Math.sin(T * .23) * .45 + Math.sin(T * .71) * .08;
+    const h = fella.photoHead; h.position.y = fella.y0 + Math.sin(T * 1.6) * .004;
+    h.rotation.set(0, Math.atan2(camera.position.x - h.position.x, camera.position.z - h.position.z), Math.sin(T * .4) * .03);
   }
   regulars.forEach((r, i) => {
     r.t += dt; const P = r.P;
