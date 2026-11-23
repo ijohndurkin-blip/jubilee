@@ -13,10 +13,6 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>The Jubilee: Last Orders</title>
-<link rel="modulepreload" href="vendor/three.module.min.js">
-<link rel="preload" href="assets/man.glb" as="fetch" crossorigin="anonymous">
-<link rel="preload" href="assets/woman.glb" as="fetch" crossorigin="anonymous">
-<link rel="preload" href="assets/anims.glb" as="fetch" crossorigin="anonymous">
 <script type="importmap">{"imports":{"three":"./vendor/three.module.min.js","three/addons/":"./vendor/jsm/"}}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -257,9 +253,6 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
-import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
 /* ============================== leaderboard backend ============================== */
 // Public, publishable key: the database only exposes two functions (submit a score / read the top list).
@@ -318,9 +311,7 @@ const QUALITY = [ // stepped down automatically if the device struggles
   { dpr: 1, post: true },
   { dpr: Math.min(DPR, 1), post: false },
 ];
-// phones start one notch down (sharp but cheaper); the frame-rate watcher steps further if needed
-const MOBILE = matchMedia('(pointer: coarse)').matches || /Android|iPhone|iPad/i.test(navigator.userAgent);
-let qLevel = MOBILE ? 1 : 0;
+let qLevel = 0;
 const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(16, 16, { type: THREE.HalfFloatType, samples: 4 }));
 composer.addPass(new RenderPass(scene, camera));
 const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), .5, .5, 1.9);
@@ -742,7 +733,7 @@ const dust = new THREE.Points(new THREE.BufferGeometry(), new THREE.PointsMateri
 }
 const spot = new THREE.SpotLight(0xffe0b0, 55, 0, .95, .65, 2);
 spot.position.set(-.1, 3.45, -1.2); spot.target.position.set(.3, .8, .8);
-spot.castShadow = true; spot.shadow.mapSize.setScalar(MOBILE ? 1024 : 2048); spot.shadow.bias = -.0004; spot.shadow.camera.near = .5; spot.shadow.camera.far = 9;
+spot.castShadow = true; spot.shadow.mapSize.set(2048, 2048); spot.shadow.bias = -.0004; spot.shadow.camera.near = .5; spot.shadow.camera.far = 9;
 scene.add(spot, spot.target);
 const muzzleLight = new THREE.PointLight(0xffc060, 0, 0, 2); scene.add(muzzleLight);
 
@@ -765,181 +756,9 @@ const G_ = {
 };
 const SHARED_GEO = new Set(Object.values(G_));
 const EYE_COLS = [0x3b2414, 0x2a5a8c, 0x3d6b3a, 0x5a4a2a, 0x1a1a1a];
-
-/* ============================== realistic people (glTF) ============================== */
-// Animated human models (a man and a woman) sharing one skeleton + an idle/walk/run library.
-// ~1.7MB, mesh- and texture-compressed for phones. If they fail to load the toy figures are used.
-const ASSETS = await (async () => {
-  if (new URLSearchParams(location.search).has('toy')) return null;
-  const files = { man: 508508, woman: 983448, anims: 77692 }, got = {};
-  const total = Object.values(files).reduce((a, b) => a + b, 0);
-  const show = () => { const n = Object.values(got).reduce((a, b) => a + b, 0); const el = $('loading'); if (el) el.textContent = `Pulling the pints… ${Math.min(99, Math.round(n / total * 100))}%`; };
-  try {
-    const L = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
-    const [man, woman, anims] = await Promise.race([
-      Promise.all(Object.keys(files).map(f => L.loadAsync(`assets/${f}.glb`, e => { got[f] = e.loaded; show(); }))),
-      new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 30000)),
-    ]);
-    const prep = (g, pre, height) => {
-      const scene = g.scene; scene.updateMatrixWorld(true);
-      const box = new THREE.Box3().setFromObject(scene);
-      scene.traverse(o => { if (o.isMesh) { SHARED_GEO.add(o.geometry); o.castShadow = true; o.frustumCulled = false; } });
-      // retarget the mannequin's clips onto this skeleton: q_t = inv(Wt_parent)·Ws_parent · q_s · inv(Ws)·Wt (rest-pose world rotations)
-      anims.scene.updateMatrixWorld(true);
-      const wq = o => o.getWorldQuaternion(new THREE.Quaternion());
-      const clips = {};
-      for (const c of anims.animations) {
-        const tracks = [];
-        for (const t of c.tracks) {
-          if (!t.name.endsWith('.quaternion')) continue;
-          const srcName = t.name.slice(0, -11), base = srcName.replace(/^mixamorig/, '');
-          const sb = anims.scene.getObjectByName(srcName) || anims.scene.getObjectByName('mixamorig:' + base), tb = scene.getObjectByName(pre + base);
-          if (!sb || !tb) continue;
-          const preQ = wq(tb.parent).invert().multiply(wq(sb.parent)), postQ = wq(sb).invert().multiply(wq(tb));
-          const v = t.values.slice(), q = new THREE.Quaternion();
-          for (let i = 0; i < v.length; i += 4) { q.fromArray(v, i); q.premultiply(preQ).multiply(postQ); q.toArray(v, i); }
-          tracks.push(new THREE.QuaternionKeyframeTrack(tb.name + '.quaternion', t.times, v));
-        }
-        clips[c.name] = new THREE.AnimationClip(c.name, c.duration, tracks);
-      }
-      return { scene, pre, fit: height / (box.max.y - box.min.y), clips };
-    };
-    return { man: prep(man, '', 1.8), woman: prep(woman, 'mixamorig', 1.7) };
-  } catch (e) { console.warn('Realistic people unavailable, using toy figures', e); return null; }
-})();
-
-const DOWN = new THREE.Vector3(0, -1, 0);
-const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _e = new THREE.Euler();
-// rotate `bone` (in world space) so the direction from it to `child` points along `dir`; w blends with the animation
-function aimBone(bone, child, dir, w = 1) {
-  bone.getWorldPosition(_a); child.getWorldPosition(_b);
-  const cur = _b.sub(_a).normalize();
-  _q.setFromUnitVectors(cur, dir);
-  bone.getWorldQuaternion(_q2); _q2.premultiply(_q);                 // desired world rotation
-  bone.parent.getWorldQuaternion(_q).invert(); _q2.premultiply(_q);  // → parent space
-  bone.quaternion.slerp(_q2, w); bone.updateMatrixWorld(true);
-}
-// a group under `bone` whose axes line up with world axes (x right, y up, z forward) in the rest pose, at world scale
-function attachFrame(bone, basis) {
-  const g = new THREE.Group(); bone.add(g);
-  bone.updateWorldMatrix(true, false);
-  const s = bone.getWorldScale(new THREE.Vector3()), rs = bone.parent ? 1 : 1;
-  g.scale.setScalar(1 / s.x * rs);
-  const want = new THREE.Quaternion().setFromRotationMatrix(basis || new THREE.Matrix4());
-  g.quaternion.copy(bone.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(want));
-  return g;
-}
-const tintTo = (mat, hex, k) => mat.color.copy(new THREE.Color(0xffffff).lerp(new THREE.Color(hex), k));
-
-function makeReal(o) {
-  const A = ASSETS[o.female ? 'woman' : 'man'];
-  const model = SkeletonUtils.clone(A.scene); model.scale.setScalar(A.fit);
-  const P = { o, real: true, female: !!o.female, mats: [], eyeMats: [], seed: Math.random() * 100, armW: [0, 0], legW: [0, 0] };
-  const root = new THREE.Group(), body = new THREE.Group(); root.add(body); body.add(model);
-  root.updateMatrixWorld(true);
-  const B = n => model.getObjectByName(A.pre + n);
-  P.rig = {}; for (const n of ['Hips', 'Spine', 'Spine2', 'Neck', 'Head', 'LeftArm', 'LeftForeArm', 'LeftHand', 'RightArm', 'RightForeArm', 'RightHand', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'RightUpLeg', 'RightLeg', 'RightFoot']) P.rig[n] = B(n);
-  P.hipH = P.rig.Hips.getWorldPosition(new THREE.Vector3()).y;
-  // own materials so each person can be tinted / faded / flashed
-  const byName = {};
-  model.traverse(m => {
-    if (!m.isMesh) return;
-    m.material = m.material.clone(); m.material.envMapIntensity = .35; P.mats.push(m.material); byName[m.name] = m;
-  });
-  if (o.female) {
-    P.skinMat = P.mats[0];
-    if (o.tint) tintTo(P.mats[0], o.tint, .22);
-  } else {
-    P.skinMat = byName.Wolf3D_Head.material;
-    const skinTone = new THREE.Color(o.skin ?? 0xf1c27d).lerp(new THREE.Color(0xffffff), .35);
-    byName.Wolf3D_Head.material.color.copy(skinTone); byName.Wolf3D_Body.material.color.set(o.skin ?? 0xf1c27d).lerp(new THREE.Color(0xffffff), .15);
-    if (o.shirt != null) tintTo(byName.Wolf3D_Outfit_Top.material, o.shirt, .85);
-    if (o.pants != null) tintTo(byName.Wolf3D_Outfit_Bottom.material, o.pants, .8);
-    byName.Wolf3D_Beard.visible = !!o.beard; if (o.hairColor != null) tintTo(byName.Wolf3D_Beard.material, o.hairColor, .6);
-    byName.Wolf3D_Headwear.visible = !!o.hat; if (o.hatColor != null) tintTo(byName.Wolf3D_Headwear.material, o.hatColor, .7);
-    P.eyeMats.push(byName.EyeLeft.material, byName.EyeRight.material);
-    P.morphs = ['Wolf3D_Head', 'Wolf3D_Teeth', 'Wolf3D_Beard', 'EyeLeft', 'EyeRight'].map(n => byName[n]).filter(m => m && m.morphTargetDictionary);
-    P.byName = byName;
-  }
-  // attachment frames: hands (props) and head (glasses, eye glints)
-  const rArm = new THREE.Matrix4().makeBasis(new THREE.Vector3(0, -1, 0), new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 1));
-  const lArm = new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 1, 0), new THREE.Vector3(-1, 0, 0), new THREE.Vector3(0, 0, 1));
-  P.handR = attachFrame(P.rig.RightHand, rArm); P.handR.position.set(0, 0, 0);
-  P.handL = attachFrame(P.rig.LeftHand, lArm);
-  P.headF = attachFrame(P.rig.Head);
-  const headW = P.rig.Head.getWorldPosition(new THREE.Vector3());
-  const eyeY = o.female ? headW.y + .105 : headW.y + .088, eyeZ = o.female ? .085 : .09, eyeX = o.female ? .031 : .03;
-  if (o.female) { // glowing eyes for villainous ladies are sprites over the eyes
-    const fake = { emissive: new THREE.Color(0), emissiveIntensity: 0 }; P.eyeMats.push(fake); P.glints = [];
-    for (const sx of [-1, 1]) {
-      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xff2020, transparent: true, opacity: 0, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending }));
-      sp.scale.setScalar(.07); sp.renderOrder = 10; P.headF.add(sp); sp.position.copy(P.headF.worldToLocal(new THREE.Vector3(eyeX * sx, eyeY, eyeZ + .01))); P.glints.push(sp);
-    }
-    P.glintSrc = fake;
-  }
-  if (o.glasses) {
-    const gm = new THREE.MeshStandardMaterial({ color: 0x080808, roughness: .05, metalness: .4, emissive: 0x000000, envMapIntensity: 1.5 }); P.mats.push(gm); P.eyeMats.push(gm); P.glassMat = gm;
-    for (const sx of [-1, 1]) { const l = new THREE.Mesh(new THREE.BoxGeometry(.045, .03, .006), gm); P.headF.add(l); l.position.copy(P.headF.worldToLocal(new THREE.Vector3(eyeX * sx * 1.05, eyeY, eyeZ + .022))); }
-    const br = new THREE.Mesh(new THREE.BoxGeometry(.03, .006, .006), gm); P.headF.add(br); br.position.copy(P.headF.worldToLocal(new THREE.Vector3(0, eyeY + .008, eyeZ + .024)));
-  }
-  // pose proxies: the game's animation code rotates these exactly like the toy figures' limbs
-  P.armL = new THREE.Object3D(); P.armR = new THREE.Object3D(); P.head = new THREE.Object3D();
-  P.legs = [new THREE.Object3D(), new THREE.Object3D()]; P.handRMesh = new THREE.Object3D(); P.brows = [];
-  P.setMouth = s => (P.morphs || []).forEach(m => { const d = m.morphTargetDictionary, inf = m.morphTargetInfluences; if (d.mouthSmile != null) inf[d.mouthSmile] = s === 'smile' ? .9 : 0; if (d.mouthOpen != null) inf[d.mouthOpen] = s === 'o' ? .8 : s === 'frown' ? .15 : 0; });
-  P.setBrows = () => {};
-  // animation
-  P.mixer = new THREE.AnimationMixer(model);
-  P.acts = {}; for (const k in A.clips) P.acts[k] = P.mixer.clipAction(A.clips[k]);
-  P.cur = P.acts.idle; P.cur.time = rand(0, 2); P.cur.play();
-  P.play = (name, fade = .25, ts = 1) => { const a = P.acts[name]; if (!a) return; a.timeScale = ts; if (a === P.cur) return; a.reset().play(); P.cur.crossFadeTo(a, fade, false); P.cur = a; };
-  // contact shadow
-  P.blob = new THREE.Mesh(G_.blob, new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false }));
-  P.blob.rotation.x = -PI / 2; P.blob.position.y = .012; P.blob.renderOrder = -1; root.add(P.blob);
-  root.scale.setScalar(o.height || 1);
-  Object.assign(P, { root, body, model });
-  P.setMouth(o.mouth || 'smile');
-  scene.add(root); people.add(P);
-  return P;
-}
-const _d = new THREE.Vector3(), _bodyQ = new THREE.Quaternion();
-function bodyDir(P, x, y, z) { return _d.set(x, y, z).normalize().applyQuaternion(P.body.getWorldQuaternion(_bodyQ)); }
-const isPosed = o => Math.abs(o.rotation.x) + Math.abs(o.rotation.z) > .03;
-function driveReal(P, dt) {
-  if (!P.root.visible) return;
-  P.mixer.update(dt);
-  P.root.updateMatrixWorld(true);
-  const R = P.rig, k = Math.min(1, dt * 12);
-  if (P.seated) {
-    for (const s of ['Left', 'Right']) {
-      aimBone(R[s + 'UpLeg'], R[s + 'Leg'], bodyDir(P, s === 'Left' ? .12 : -.12, -.05, 1));
-      aimBone(R[s + 'Leg'], R[s + 'Foot'], bodyDir(P, 0, -1, P.seated === 'stool' ? -.05 : .15));
-    }
-  }
-  [['Left', P.armL, 0], ['Right', P.armR, 1]].forEach(([s, prox, i]) => {
-    P.armW[i] += ((isPosed(prox) ? 1 : 0) - P.armW[i]) * k;
-    if (P.armW[i] < .01) return;
-    _e.copy(prox.rotation); const d = DOWN.clone().applyEuler(_e);
-    const dir = bodyDir(P, d.x, d.y, d.z).clone();
-    aimBone(R[s + 'Arm'], R[s + 'ForeArm'], dir, P.armW[i]);
-    aimBone(R[s + 'ForeArm'], R[s + 'Hand'], dir, P.armW[i]);
-  });
-  if (!P.seated) P.legs.forEach((prox, i) => {
-    P.legW[i] += ((Math.abs(prox.rotation.x) > .03 ? 1 : 0) - P.legW[i]) * k;
-    if (P.legW[i] < .01) return;
-    const s = i ? 'Right' : 'Left';
-    _e.copy(prox.rotation); const d = DOWN.clone().applyEuler(_e);
-    const dir = bodyDir(P, d.x, d.y, d.z).clone();
-    aimBone(R[s + 'UpLeg'], R[s + 'Leg'], dir, P.legW[i]); aimBone(R[s + 'Leg'], R[s + 'Foot'], dir, P.legW[i]);
-  });
-  if (P.extraPose) P.extraPose(P);
-  const h = P.head.rotation; if (h.x || h.y || h.z) { _q.setFromEuler(h); R.Head.quaternion.multiply(_q); }
-  if (P.glints) { const g = P.glintSrc; P.glints.forEach(sp => { sp.material.opacity = Math.min(1, g.emissiveIntensity / 2); sp.material.color.copy(g.emissive); }); }
-}
-
 function backHair(theta) { return new THREE.SphereGeometry(.184, 20, 14, PI, PI, 0, PI * theta); }
 
-function makePerson(o) { return ASSETS ? makeReal(o) : makeToy(o); }
-function makeToy(o) {
+function makePerson(o) {
   const P = { o, mats: [], seed: Math.random() * 100, eyeMats: [] };
   const mat = (c, extra) => { const m = M(c, extra); P.mats.push(m); return m; };
   const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
@@ -1122,8 +941,8 @@ const SPOT_ACTIVE = new THREE.Vector3(-.55, 0, -.8);
 const SPOT_IDLE = new THREE.Vector3(-2.2, 0, -1.05);
 const CUST_SPOT = new THREE.Vector3(.6, 0, 1.0);
 const MAIDS = [
-  { name: 'Barmaid', photo: 'barmaid.jpg', hair: '#f5d37a', o: { female: true, skin: 0xffd9b8, hairColor: 0xf3cf6c, hairStyle: 'ponytail', shirt: 0xc8102e, skirt: 0x1d1d1d, pants: 0x1d1d1d, dress: true, apron: true, shortSleeve: true, lips: true, scrunchie: 0x1d1d1d, height: 1 } },
-  { name: 'Barman', hair: '#3a2414', o: { skin: 0xf1c27d, hairColor: 0x3a2414, hairStyle: 'short', shirt: 0xf2efe8, pants: 0x1d1d1d, apron: true, shortSleeve: true, beard: true, height: 1.05 } },
+  { name: 'Barmaid', photo: 'barmaid.jpg', hair: '#f5d37a', o: { skin: 0xffd9b8, hairColor: 0xf3cf6c, hairStyle: 'ponytail', shirt: 0xc8102e, skirt: 0x1d1d1d, pants: 0x1d1d1d, dress: true, apron: true, shortSleeve: true, lips: true, scrunchie: 0x1d1d1d, height: 1 } },
+  { name: 'Barman', hair: '#3a2414', o: { skin: 0xf1c27d, hairColor: 0x3a2414, hairStyle: 'short', shirt: 0x2b4d8c, pants: 0x1d1d1d, apron: true, shortSleeve: true, beard: true, height: 1.05 } },
 ];
 MAIDS[0].o.eyeColor = 0x2a6a9c; MAIDS[1].o.eyeColor = 0x3b2414;
 MAIDS.forEach(m => { m.P = makePerson(m.o); m.alive = true; m.role = 'idle'; m.gun = makeGun(0x2b2b2b); m.gun.visible = false; m.P.handR.add(m.gun);
@@ -1131,7 +950,6 @@ MAIDS.forEach(m => { m.P = makePerson(m.o); m.alive = true; m.role = 'idle'; m.g
 
 /* ============================== customers ============================== */
 const NAMES = ['Big Dave', 'Mags', 'Tommo', 'Our Kev', 'Sully', 'Brenda', 'Gaz', 'Moira', 'Scouse Steve', 'Little Jimmy', 'Auntie Pat', 'Deano', 'Sharon', 'Frankie', 'Macca', 'Vinny', 'Lorraine', 'Bazza', 'Tina', 'Mad Mick', 'Reg', 'Paulie', 'Jackie', 'Stan', 'Bev', 'Lenny', 'Carol', 'Smiler', 'Dot', 'Ronnie'];
-const MALE_NAMES = ['Big Dave', 'Tommo', 'Our Kev', 'Sully', 'Gaz', 'Scouse Steve', 'Little Jimmy', 'Deano', 'Frankie', 'Macca', 'Vinny', 'Bazza', 'Mad Mick', 'Reg', 'Paulie', 'Stan', 'Lenny', 'Smiler', 'Ronnie', 'Tez', 'Kenny', 'Sid'];
 const LINES = {
   good: [
     [ // tier 0 – obvious
@@ -1242,22 +1060,21 @@ function genCustomer(level) {
   if (!pool.length) pool = LINES[side][tier];
   const line = pick(pool);
   recentLines.push(line); if (recentLines.length > 14) recentLines.shift();
-  const female = ASSETS ? false : chance(.4); // only one realistic female model exists, so customers are all men in that mode
+  const female = chance(.4);
   const coat = chance(evil ? lerp(.55, .2, s) : lerp(.15, .38, s));
   const hood = !coat && chance(evil ? lerp(.3, .1, s) : lerp(.08, .22, s));
   const o = {
-    female, tint: female ? pick([0xffffff, 0xffd0c0, 0xc0d8ff, 0xd0ffd0, 0xfff0b0, 0xe0c0ff]) : null,
     skin: pick(SKINS), hairColor: pick(HAIRS), pants: pick(PANTS),
     shirt: coat || hood ? pick(COATS) : pick(SHIRTS), coat,
     hairStyle: female ? pick(['long', 'bun', 'ponytail', 'short']) : pick(['short', 'short', 'bald', 'mohawk', 'short']),
-    hat: hood ? 'hood' : chance(ASSETS ? .55 : .35) ? pick(['flatcap', 'beanie', 'bowler']) : null, hatColor: pick([0x4b4b4b, 0x7a5c3a, 0x8b1e1e, 0x1e3a5f, 0x2d572c]),
+    hat: hood ? 'hood' : chance(.35) ? pick(['flatcap', 'beanie', 'bowler']) : null, hatColor: pick([0x4b4b4b, 0x7a5c3a, 0x8b1e1e, 0x1e3a5f, 0x2d572c]),
     glasses: chance(evil ? lerp(.35, .25, s) : lerp(.18, .4, s)), beard: !female && chance(.35), lips: female,
     height: rand(.93, 1.08),
     mouth: evil ? (chance(lerp(.2, .75, s)) ? 'smile' : pick(['flat', 'frown'])) : (chance(lerp(.65, .4, s)) ? 'smile' : pick(['flat', 'frown'])),
   };
   if (o.hairStyle === 'mohawk' && o.hat) o.hat = null;
   return {
-    evil, line, name: pick(female || !ASSETS ? NAMES : MALE_NAMES), o,
+    evil, line, name: pick(NAMES), o,
     // a villain ALWAYS flashes red eyes at some point — but later on it's quicker, dimmer and rarer
     glint: evil,
     glintDur: lerp(.26, .09, s), glintGap: [lerp(1.2, 2.2, s), lerp(2.2, 3.4, s)], glintPow: lerp(3.2, 1.7, s),
@@ -1520,14 +1337,6 @@ async function nextCustomer(run) {
 
 function walkTo(P, x, z, speed = 2.6) {
   const sx = P.root.position.x, sz = P.root.position.z;
-  if (P.real) {
-    const dist = Math.hypot(x - sx, z - sz), yaw = Math.atan2(x - sx, z - sz), y0 = P.root.rotation.y;
-    P.play(speed > 3 ? 'run' : 'walk', .2, speed > 3 ? speed / 3.6 : speed / 1.35);
-    return tween(dist / speed, (k, raw) => {
-      P.root.position.x = lerp(sx, x, k); P.root.position.z = lerp(sz, z, k);
-      P.root.rotation.y = angLerp(y0, yaw, Math.min(1, raw * 6));
-    }, lin).then(() => P.play('idle', .3));
-  }
   const dist = Math.hypot(x - sx, z - sz); const yaw = Math.atan2(x - sx, z - sz);
   const y0 = P.root.rotation.y;
   return tween(dist / speed, (k, raw) => {
@@ -1984,13 +1793,12 @@ drawAvatar($('av0'), MAIDS[0]); drawAvatar($('av1'), MAIDS[1]);
 
 /* ============================== seated regulars (ambience) ============================== */
 const regulars = [];
-[[-3.3, 3.3, .9], [3.6, 3.9, -1.2], [-3.7, 7.0, 2.2], [3.7, 7.7, -2.4]].forEach(([tx, tz, ang], i) => {
-  const o = { female: i === 2, tint: pick([0xffffff, 0xffd0c0, 0xc0d8ff, 0xfff0b0]), skin: pick(SKINS), hairColor: pick(HAIRS), shirt: pick(SHIRTS), pants: pick(PANTS), hairStyle: pick(['short', 'bald', 'long', 'bun']), hat: chance(.3) ? 'flatcap' : null, hatColor: 0x5a4a3a, beard: chance(.3), height: rand(.95, 1.05), mouth: 'smile' };
+[[-3.3, 3.3, .9], [3.6, 3.9, -1.2], [-3.7, 7.0, 2.2], [3.7, 7.7, -2.4], [-2.6, 3.0, -.6]].forEach(([tx, tz, ang], i) => {
+  const o = { skin: pick(SKINS), hairColor: pick(HAIRS), shirt: pick(SHIRTS), pants: pick(PANTS), hairStyle: pick(['short', 'bald', 'long', 'bun']), hat: chance(.3) ? 'flatcap' : null, hatColor: 0x5a4a3a, beard: chance(.3), height: rand(.95, 1.05), mouth: 'smile' };
   const P = makePerson(o);
   const r = .78; const x = tx + Math.sin(ang) * r, z = tz + Math.cos(ang) * r;
   P.root.position.set(x, -.22, z); P.root.rotation.y = ang + PI; P.blob.position.y = .232;
-  if (P.real) { P.seated = 'chair'; P.model.traverse(m => { if (m.isMesh) m.castShadow = false; }); P.root.position.y = .66 - P.hipH * (o.height || 1); P.blob.position.y = -P.root.position.y / (o.height || 1) + .012; }
-  else P.legs.forEach(l => l.rotation.x = -PI / 2);
+  P.legs.forEach(l => l.rotation.x = -PI / 2);
   cyl(.2, .2, .05, CM('stoolTop', 0x7a1f1f), x, .6, z, scene, 14, true); cyl(.03, .04, .58, brass, x, .3, z, scene, 6);
   const pint = makePint(true); pint.position.set(tx + Math.sin(ang) * .35, .77, tz + Math.cos(ang) * .35); scene.add(pint);
   regulars.push({ P, t: rand(0, 6), ph: rand(0, 10) });
@@ -1998,40 +1806,7 @@ const regulars = [];
 
 /* ============================== the fella at the end of the bar ============================== */
 // a regular in a dark hoodie, perched on the end stool, arms crossed on the bar, bottle of beer at his elbow
-function makeBottle(x, z) {
-  const bottle = new THREE.Group(); bottle.position.set(x, BAR_TOP, z); scene.add(bottle);
-  const glassM = new THREE.MeshStandardMaterial({ color: 0x4a2208, roughness: .08, metalness: .1, transparent: true, opacity: .88, envMapIntensity: 1.2 });
-  const bBody = new THREE.Mesh(new THREE.CylinderGeometry(.033, .033, .15, 18), glassM); bBody.position.y = .075; bottle.add(bBody);
-  const bSh = new THREE.Mesh(new THREE.CylinderGeometry(.013, .033, .05, 18), glassM); bSh.position.y = .175; bottle.add(bSh);
-  const bNeck = new THREE.Mesh(new THREE.CylinderGeometry(.012, .013, .06, 14), glassM); bNeck.position.y = .23; bottle.add(bNeck);
-  const lab = new THREE.Mesh(new THREE.CylinderGeometry(.0335, .0335, .06, 18, 1, true), M(0xe8d9a8, { roughness: .7 })); lab.position.y = .07; bottle.add(lab);
-  const cap = new THREE.Mesh(new THREE.CylinderGeometry(.014, .014, .01, 12), CM('brass', 0xc9a24a)); cap.position.y = .262; bottle.add(cap);
-  bottle.traverse(o => { if (o.isMesh) o.castShadow = true; });
-  return bottle;
-}
-const fella = ASSETS ? (() => {
-  const SX = 1.8, SZ = .98;
-  const P = makeReal({ skin: 0xc98f6a, shirt: 0x4a4d42, pants: 0x2c2f36, beard: false, hat: false, height: 1.0, mouth: 'smile' });
-  for (const n of ['Wolf3D_Head', 'Wolf3D_Teeth', 'Wolf3D_Beard', 'Wolf3D_Headwear', 'EyeLeft', 'EyeRight']) P.byName[n].visible = false;
-  P.seated = 'stool';
-  P.root.position.set(SX, .84 - P.hipH, SZ); P.root.rotation.y = PI; P.blob.position.y = -P.root.position.y + .012;
-  const lean = new THREE.Quaternion().setFromEuler(new THREE.Euler(.32, 0, 0));
-  P.extraPose = P => {
-    const R = P.rig;
-    R.Spine.quaternion.multiply(lean); R.Spine.updateMatrixWorld(true);
-    aimBone(R.LeftArm, R.LeftForeArm, bodyDir(P, .12, -.55, 1).clone());
-    aimBone(R.RightArm, R.RightForeArm, bodyDir(P, -.12, -.55, 1).clone());
-    aimBone(R.LeftForeArm, R.LeftHand, bodyDir(P, -1, .05, .18).clone());
-    aimBone(R.RightForeArm, R.RightHand, bodyDir(P, 1, .12, .12).clone());
-  };
-  const headTex = new THREE.TextureLoader().load('regular-head.png'); headTex.colorSpace = THREE.SRGBColorSpace; headTex.anisotropy = 4;
-  const HW = .25, HH = HW * 429 / 320;
-  const photoHead = new THREE.Mesh(new THREE.PlaneGeometry(HW, HH), new THREE.MeshBasicMaterial({ map: headTex, transparent: true, alphaTest: .03, color: 0xd6bea6 }));
-  scene.add(photoHead);
-  const hood = new THREE.Mesh(new THREE.TorusGeometry(.085, .032, 10, 24), P.byName.Wolf3D_Outfit_Top.material);
-  hood.castShadow = true; scene.add(hood);
-  return { P, bottle: makeBottle(SX + .4, .42), photoHead, hood, real: true };
-})() : (() => {
+const fella = (() => {
   const SX = 1.8, SZ = .95, SC = 1.04;
   const P = makePerson({ skin: 0x8a5a44, hairColor: 0x3a2a20, hairStyle: 'bald', shirt: 0x35372f, pants: 0x26282c, hoodie: true, height: SC });
   // his real head, cut out of the photo, always turned to face the camera
@@ -2069,7 +1844,14 @@ const fella = ASSETS ? (() => {
   // lean in a touch and look out over the pub
   P.head.rotation.x = .08;
   // brown bottle of beer by his right elbow
-  const bottle = makeBottle(SX + .42, .42);
+  const bottle = new THREE.Group(); bottle.position.set(SX + .42, BAR_TOP, .42); scene.add(bottle);
+  const glassM = new THREE.MeshStandardMaterial({ color: 0x4a2208, roughness: .08, metalness: .1, transparent: true, opacity: .88, envMapIntensity: 1.2 });
+  const bBody = new THREE.Mesh(new THREE.CylinderGeometry(.033, .033, .15, 18), glassM); bBody.position.y = .075; bottle.add(bBody);
+  const bSh = new THREE.Mesh(new THREE.CylinderGeometry(.013, .033, .05, 18), glassM); bSh.position.y = .175; bottle.add(bSh);
+  const bNeck = new THREE.Mesh(new THREE.CylinderGeometry(.012, .013, .06, 14), glassM); bNeck.position.y = .23; bottle.add(bNeck);
+  const lab = new THREE.Mesh(new THREE.CylinderGeometry(.0335, .0335, .06, 18, 1, true), M(0xe8d9a8, { roughness: .7 })); lab.position.y = .07; bottle.add(lab);
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(.014, .014, .01, 12), CM('brass', 0xc9a24a)); cap.position.y = .262; bottle.add(cap);
+  bottle.traverse(o => { if (o.isMesh) o.castShadow = true; });
   return { P, bottle, photoHead, y0: photoHead.position.y };
 })();
 
@@ -2114,16 +1896,13 @@ function update(dt) {
       m.shotgun.visible = !!G.shotgun && G.state !== 'menu' && G.state !== 'gameover';
       if (m.shotgun.visible) { // port arms, ready to go
         P.armR.rotation.x = PORT_ARMS.rx + b * .02; P.armR.rotation.z = PORT_ARMS.rz; P.armL.rotation.x = PORT_ARMS.lx; P.armL.rotation.z = PORT_ARMS.lz;
-      } else if (!P.real) { P.armL.rotation.z = .12 + b * .02; P.armR.rotation.z = -.12 - b * .02; }
+      } else { P.armL.rotation.z = .12 + b * .02; P.armR.rotation.z = -.12 - b * .02; }
     }
   });
-  { // the fella: slow breathing; his photo head always faces the camera
-    const P = fella.P, h = fella.photoHead;
-    if (fella.real) {
-      const nk = P.rig.Neck.getWorldPosition(_a);
-      h.position.set(nk.x, nk.y + .13, nk.z - .06);
-      fella.hood.position.set(nk.x, nk.y + .01, nk.z - .02); fella.hood.rotation.set(PI / 2 - .35, 0, 0);
-    } else { P.body.scale.y = 1 + Math.sin(T * 1.6) * .006; h.position.y = fella.y0 + Math.sin(T * 1.6) * .004; }
+  { // the fella: slow breathing, glances round the pub
+    const P = fella.P;
+    P.body.scale.y = 1 + Math.sin(T * 1.6) * .006;
+    const h = fella.photoHead; h.position.y = fella.y0 + Math.sin(T * 1.6) * .004;
     h.rotation.set(0, Math.atan2(camera.position.x - h.position.x, camera.position.z - h.position.z), Math.sin(T * .4) * .03);
   }
   regulars.forEach((r, i) => {
@@ -2194,8 +1973,6 @@ function update(dt) {
     a.needsUpdate = true;
   }
   grade.uniforms.uTime.value = T;
-
-  people.forEach(P => { if (P.real) driveReal(P, dt); });
 
   // camera
   if (camMode === 'debug') {
