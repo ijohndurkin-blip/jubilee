@@ -13,6 +13,7 @@ Type your name, pick **Barmaid** or **Barman**, and open the bar. Your name stay
 - **Full screen.** Use the ⛶ button (or press **F**). On iPhone, tap Share → *Add to Home Screen* and open it from there to play full screen.
 - **Sneakier every round.** From round 2 on, villains hide their tells: less coats and shifty looks, more smiles, friendly small talk, quicker and dimmer red eye glints. Meanwhile the regulars look shiftier, say alarming things, and their glasses catch the light. Only the red flash in the eyes never lies.
 - **Shotgun streaks.** Get **5 right in a row** and you're handed a shotgun. It stays loaded until the next villain walks in: hit **BLAST** and they get blown in slow motion clean out of the front door, for double points + 250. A wrong call drops it.
+- **Realistic 3D people.** Customers, regulars and your barmaid/barman are proper skinned human models with real idle, walk and run animations. Everything else (aiming, the shotgun, falling, sitting) is posed live on their skeletons. Men get random suit colours, hats, beards and skin tones; villains' eyes still flash red. The models are about 1.6MB in total (meshopt-compressed meshes, WebP textures), start downloading as the page opens, and show a loading percentage. If they fail to load, the game falls back to the old toy figures (add `?toy` to the URL to force that).
 - **Better graphics.** Bloom lighting, reflections on brass and glass, a filmic grade, rain on the windows, a live fire with embers, dust in the lamplight, contact shadows and more detailed characters. It steps quality down automatically on slower phones.
 
 ## Controls
@@ -40,4 +41,6 @@ Scores live in a Supabase Postgres table, `public.jubilee_scores`. The browser c
 - `jubilee_submit(name, score, correct, best_streak, round)`: checks the name (1 to 18 characters), checks the score is plausible for the number of correct calls, and rate-limits each name
 - `jubilee_top(limit)`: returns each player's best shift, highest first
 
-Three.js r160 and its post-processing add-ons are bundled under `vendor/` (MIT licence, see `vendor/THREE-LICENSE`).
+Three.js r160 and its add-ons are bundled under `vendor/` (MIT licence, see `vendor/THREE-LICENSE`).
+
+The character models in `assets/` come from the three.js example models: the Ready Player Me avatar (`man.glb`), Mixamo's Michelle (`woman.glb`, recoloured), and the animations from Mixamo's X Bot (`anims.glb`). They were compressed with glTF-Transform.
